@@ -1,0 +1,22 @@
+{
+    "name": "sena/carnet-fasefinal",
+    "description": "proyectico",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        
+        "psr-4": {
+            "Sena\\CarnetFasefinal\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "saber235",
+            "email": "jhonnygonsalez7@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "phpoffice/phpspreadsheet": "^2.1"
+    }
+}
