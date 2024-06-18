@@ -17,6 +17,7 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "phpoffice/phpspreadsheet": "^2.1"
+        "phpoffice/phpspreadsheet": "^2.1",
+        "phpmailer/phpmailer": "dev-master"
     }
 }

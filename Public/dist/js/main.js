@@ -1,13 +1,13 @@
-$(document).ready(function() {
-    $('#btn-generarPNG').click(function() {
-      html2canvas(document.querySelector('#carnet'), {
-        scale: 3 // Incrementar la escala para mejorar la resolución
-      }).then(canvas => {
-        // Crear un enlace para descargar la imagen
-        var link = document.createElement('a');
-        link.download = 'carnet.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.btnGenerarPNG').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+          let carnetId = this.getAttribute('data-carnet-id');
+          html2canvas(document.querySelector('#' + carnetId), { scale: 3 }).then(canvas => {
+              let enlace = document.createElement('a');
+              enlace.download = carnetId + '.png';
+              enlace.href = canvas.toDataURL();
+              enlace.click();
+          });
       });
-    });
   });
+});
