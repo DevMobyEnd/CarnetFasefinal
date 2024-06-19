@@ -1,5 +1,5 @@
 <?php
-require_once './Models/CarnetModelo.php'; // Asumiendo que tienes un archivo Modelo.php que maneja las operaciones de la base de datos
+require_once './Models/CarnetModelo.php'; // Asegúrate de que la ruta al archivo del modelo sea correcta
 
 class CarnetController {
     private $modelo;
@@ -22,34 +22,105 @@ class CarnetController {
             $aprendicesSeleccionados = array_unique($_POST['aprendices']);
             $datosAprendices = $this->modelo->obtenerDatosAprendices($aprendicesSeleccionados);
     
-            // Suponiendo que tienes un método generarImagenesPNG() que toma los datos de los aprendices,
-            // genera una imagen PNG para cada uno, y devuelve un array de rutas de imágenes.
             $rutasImagenes = $this->generarImagenesPNG($datosAprendices);
     
-            // Pasas $rutasImagenes a tu vista para que pueda generar enlaces de descarga.
-            require_once './views/MostrarCarnets.php';
+            if (count($rutasImagenes) > 0) {
+                $zip = new ZipArchive();
+                $nombreArchivoZip = "carnets.zip";
+    
+                if ($zip->open($nombreArchivoZip, ZipArchive::CREATE) === TRUE) {
+                    foreach ($rutasImagenes as $ruta) {
+                        if (file_exists($ruta)) {
+                            $zip->addFile($ruta, basename($ruta));
+                        }
+                    }
+                    $zip->close();
+    
+                    if (file_exists($nombreArchivoZip)) {
+                        // Enviar el archivo ZIP para descarga
+                        header('Content-Type: application/zip');
+                        header('Content-Disposition: attachment; filename="'.basename($nombreArchivoZip).'"');
+                        header('Content-Length: ' . filesize($nombreArchivoZip));
+                        flush();
+                        readfile($nombreArchivoZip);
+    
+                        // Eliminar el archivo ZIP después de la descarga
+                        unlink($nombreArchivoZip);
+    
+                        // Eliminar las imágenes temporales generadas
+                        foreach ($rutasImagenes as $ruta) {
+                            unlink($ruta);
+                        }
+                        exit;
+                    } else {
+                        echo "No se pudo crear el archivo ZIP.";
+                    }
+                } else {
+                    echo "No se pudo abrir el archivo ZIP.";
+                }
+            } else {
+                echo "No se generaron imágenes para los aprendices seleccionados.";
+            }
         } else {
             echo "Por favor, seleccione al menos un aprendiz.";
         }
     }
+    
+
     private function generarImagenesPNG($datosAprendices) {
         $rutasImagenes = [];
-        foreach ($datosAprendices as $aprendiz) {
-            // Aquí iría la lógica para generar una imagen PNG para el aprendiz actual.
-            // Esto es solo un esquema. Necesitarías una biblioteca como GD o Imagick para generar realmente la imagen.
-            // Por ejemplo, podrías tener algo así (esto es solo ilustrativo):
+        $directorioImagenes = 'ruta/a/imagenes/'; // Define el directorio donde se guardarán las imágenes
     
-            // Define la ruta donde se guardará la imagen
-            $rutaImagen = "ruta/a/imagenes/{$aprendiz['documento']}.png";
-    
-            // Aquí iría el código para generar la imagen PNG usando los datos en $aprendiz
-            // y guardarla en $rutaImagen. Este código dependerá de la biblioteca que estés usando.
-    
-            // Añade la ruta de la imagen generada al array de rutas
-            $rutasImagenes[] = $rutaImagen;
+        // Verifica si el directorio existe, si no, intenta crearlo
+        if (!is_dir($directorioImagenes)) {
+            mkdir($directorioImagenes, 0777, true);
         }
+    
+        // Itera sobre cada aprendiz para generar su carnet
+        foreach ($datosAprendices as $aprendiz) {
+            $nombreAprendiz = htmlspecialchars($aprendiz['aprendiz']);
+            $documentoAprendiz = htmlspecialchars($aprendiz['documento']);
+            $rutaImagen = $directorioImagenes . "{$documentoAprendiz}.png";
+    
+            // Carga el boseto HTML del carnet
+            ob_start();
+            include('../views/MostrarCarnets.php'); // Ajusta la ruta según tu estructura de archivos
+            $html = ob_get_clean();
+    
+            // Crea una nueva imagen
+            $imagen = imagecreatetruecolor(800, 600); // Ajusta el tamaño según tus necesidades
+    
+            // Crea una imagen desde el HTML renderizado
+            $this->htmlToImage($html, $imagen);
+    
+            // Guarda la imagen en formato PNG en la ruta especificada
+            if (imagepng($imagen, $rutaImagen)) {
+                $rutasImagenes[] = $rutaImagen; // Añade la ruta de la imagen generada al array de rutas
+            } else {
+                echo "Error al guardar la imagen para el documento: {$documentoAprendiz}<br>";
+            }
+    
+            imagedestroy($imagen); // Libera la memoria asociada con la imagen
+        }
+    
         return $rutasImagenes;
     }
+    
+    // Método para convertir HTML a imagen
+    private function htmlToImage($html, &$imagen) {
+        // Crea una nueva instancia de DOMDocument
+        $dom = new DOMDocument();
+        $dom->loadHTML($html);
+    
+        // Inicializa la clase Imagick
+        $image = new Imagick();
+        $image->setBackgroundColor(new ImagickPixel('transparent'));
+    
+        // Renderiza el HTML a una imagen
+        $image->readImageBlob($dom->saveHTML());
+    }
+    
+    
     
 }
 ?>
