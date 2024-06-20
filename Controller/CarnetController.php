@@ -1,5 +1,5 @@
 <?php
-require_once './Models/CarnetModelo.php'; // Asegúrate de que la ruta al archivo del modelo sea correcta
+require_once './Models/CarnetModelo.php'; // Asumiendo que tienes un archivo Modelo.php que maneja las operaciones de la base de datos
 
 class CarnetController {
     private $modelo;
@@ -21,106 +21,56 @@ class CarnetController {
         if (!empty($_POST['aprendices'])) {
             $aprendicesSeleccionados = array_unique($_POST['aprendices']);
             $datosAprendices = $this->modelo->obtenerDatosAprendices($aprendicesSeleccionados);
-    
+
+            // Suponiendo que tienes un método generarImagenesPNG() que toma los datos de los aprendices,
+            // genera una imagen PNG para cada uno, y devuelve un array de rutas de imágenes.
             $rutasImagenes = $this->generarImagenesPNG($datosAprendices);
-    
-            if (count($rutasImagenes) > 0) {
-                $zip = new ZipArchive();
-                $nombreArchivoZip = "carnets.zip";
-    
-                if ($zip->open($nombreArchivoZip, ZipArchive::CREATE) === TRUE) {
-                    foreach ($rutasImagenes as $ruta) {
-                        if (file_exists($ruta)) {
-                            $zip->addFile($ruta, basename($ruta));
-                        }
-                    }
-                    $zip->close();
-    
-                    if (file_exists($nombreArchivoZip)) {
-                        // Enviar el archivo ZIP para descarga
-                        header('Content-Type: application/zip');
-                        header('Content-Disposition: attachment; filename="'.basename($nombreArchivoZip).'"');
-                        header('Content-Length: ' . filesize($nombreArchivoZip));
-                        flush();
-                        readfile($nombreArchivoZip);
-    
-                        // Eliminar el archivo ZIP después de la descarga
-                        unlink($nombreArchivoZip);
-    
-                        // Eliminar las imágenes temporales generadas
-                        foreach ($rutasImagenes as $ruta) {
-                            unlink($ruta);
-                        }
-                        exit;
-                    } else {
-                        echo "No se pudo crear el archivo ZIP.";
-                    }
-                } else {
-                    echo "No se pudo abrir el archivo ZIP.";
-                }
-            } else {
-                echo "No se generaron imágenes para los aprendices seleccionados.";
-            }
+
+            // Pasas $rutasImagenes a tu vista para que pueda generar enlaces de descarga.
+            require_once './views/MostrarCarnets.php';
         } else {
             echo "Por favor, seleccione al menos un aprendiz.";
         }
     }
-    
-
     private function generarImagenesPNG($datosAprendices) {
         $rutasImagenes = [];
-        $directorioImagenes = 'ruta/a/imagenes/'; // Define el directorio donde se guardarán las imágenes
-    
-        // Verifica si el directorio existe, si no, intenta crearlo
-        if (!is_dir($directorioImagenes)) {
-            mkdir($directorioImagenes, 0777, true);
-        }
-    
-        // Itera sobre cada aprendiz para generar su carnet
         foreach ($datosAprendices as $aprendiz) {
-            $nombreAprendiz = htmlspecialchars($aprendiz['aprendiz']);
-            $documentoAprendiz = htmlspecialchars($aprendiz['documento']);
-            $rutaImagen = $directorioImagenes . "{$documentoAprendiz}.png";
+            // Genera el código QR
+            $datosQR = $aprendiz['documento']; // Aquí puedes ajustar los datos que quieras codificar
+            $rutaQR = $this->generarCodigoQR($datosQR);
     
-            // Carga el boseto HTML del carnet
-            ob_start();
-            include('../views/MostrarCarnets.php'); // Ajusta la ruta según tu estructura de archivos
-            $html = ob_get_clean();
+            // Define la ruta donde se guardará la imagen del carnet
+            $rutaImagenCarnet = "ruta/a/imagenes/{$aprendiz['documento']}.png";
     
-            // Crea una nueva imagen
-            $imagen = imagecreatetruecolor(800, 600); // Ajusta el tamaño según tus necesidades
+            // Aquí iría el código para generar la imagen del carnet, incluyendo el código QR
+            // Esto dependerá de la biblioteca que estés usando (GD, Imagick, etc.)
+            // Por ejemplo, podrías cargar una plantilla de carnet, dibujar los datos del aprendiz y el código QR, y guardar el resultado
     
-            // Crea una imagen desde el HTML renderizado
-            $this->htmlToImage($html, $imagen);
-    
-            // Guarda la imagen en formato PNG en la ruta especificada
-            if (imagepng($imagen, $rutaImagen)) {
-                $rutasImagenes[] = $rutaImagen; // Añade la ruta de la imagen generada al array de rutas
-            } else {
-                echo "Error al guardar la imagen para el documento: {$documentoAprendiz}<br>";
-            }
-    
-            imagedestroy($imagen); // Libera la memoria asociada con la imagen
+            // Añade la ruta de la imagen del carnet generada al array de rutas
+            $rutasImagenes[] = $rutaImagenCarnet;
         }
-    
         return $rutasImagenes;
     }
     
-    // Método para convertir HTML a imagen
-    private function htmlToImage($html, &$imagen) {
-        // Crea una nueva instancia de DOMDocument
-        $dom = new DOMDocument();
-        $dom->loadHTML($html);
+    private function generarCodigoQR($datos) {
+        // Importa las clases necesarias de la biblioteca
+        $qrCode = new \Endroid\QrCode\QrCode($datos);
     
-        // Inicializa la clase Imagick
-        $image = new Imagick();
-        $image->setBackgroundColor(new ImagickPixel('transparent'));
+        // Puedes ajustar varios parámetros del código QR aquí, como el tamaño
+        $qrCode->setSize(300);
     
-        // Renderiza el HTML a una imagen
-        $image->readImageBlob($dom->saveHTML());
+        // Crea una instancia del escritor deseado, por ejemplo, para guardar como PNG
+        $writer = new \Endroid\QrCode\Writer\PngWriter();
+    
+        // Define la ruta donde se guardará el código QR generado
+        $rutaArchivoQR = "ruta/a/codigosQR/{$datos}.png";
+    
+        // Guarda el código QR en la ruta especificada usando el escritor
+        $result = $writer->write($qrCode);
+        file_put_contents($rutaArchivoQR, $result->getString());
+    
+        // Devuelve la ruta del archivo QR generado
+        return $rutaArchivoQR;
     }
-    
-    
-    
 }
 ?>

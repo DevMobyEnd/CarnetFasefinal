@@ -18,6 +18,8 @@
     "minimum-stability": "dev",
     "require": {
         "phpoffice/phpspreadsheet": "^2.1",
-        "phpmailer/phpmailer": "dev-master"
+        "phpmailer/phpmailer": "dev-master",
+        "endroid/qr-code": "^4.8",
+        "intervention/image": "^3.0@alpha"
     }
 }
