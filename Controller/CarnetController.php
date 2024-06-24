@@ -1,5 +1,6 @@
 <?php
-require_once './Models/CarnetModelo.php'; // Asumiendo que tienes un archivo Modelo.php que maneja las operaciones de la base de datos
+require_once 'vendor/autoload.php';
+require_once './Models/CarnetModelo.php';
 
 class CarnetController {
     private $modelo;
@@ -10,66 +11,56 @@ class CarnetController {
 
     public function mostrarFormulario() {
         if ($_SERVER["REQUEST_METHOD"] != "POST") {
+            // Obtiene los datos personales y muestra el formulario
             $datosPersonales = $this->modelo->obtenerDatosPersonales();
-            require_once './views/MostrarFormulario.php'; // Archivo de vista que muestra el formulario y la tabla de datos
+            require_once './views/MostrarFormulario.php';
         } else {
+            // Procesa el formulario cuando se envía
             $this->procesarFormulario();
         }
     }
 
     public function procesarFormulario() {
         if (!empty($_POST['aprendices'])) {
+            // Obtiene los documentos de los aprendices seleccionados
             $aprendicesSeleccionados = array_unique($_POST['aprendices']);
+            // Obtiene los datos de los aprendices desde la base de datos
             $datosAprendices = $this->modelo->obtenerDatosAprendices($aprendicesSeleccionados);
 
-            // Suponiendo que tienes un método generarImagenesPNG() que toma los datos de los aprendices,
-            // genera una imagen PNG para cada uno, y devuelve un array de rutas de imágenes.
-            $rutasImagenes = $this->generarImagenesPNG($datosAprendices);
+            // Genera las imágenes PNG y códigos QR para cada aprendiz
+            $datosAprendicesConRutas = $this->generarImagenesPNG($datosAprendices);
 
-            // Pasas $rutasImagenes a tu vista para que pueda generar enlaces de descarga.
+            // Pasa los datos a la vista para mostrar los carnets
             require_once './views/MostrarCarnets.php';
         } else {
             echo "Por favor, seleccione al menos un aprendiz.";
         }
     }
+
     private function generarImagenesPNG($datosAprendices) {
-        $rutasImagenes = [];
-        foreach ($datosAprendices as $aprendiz) {
-            // Genera el código QR
-            $datosQR = $aprendiz['documento']; // Aquí puedes ajustar los datos que quieras codificar
-            $rutaQR = $this->generarCodigoQR($datosQR);
-    
-            // Define la ruta donde se guardará la imagen del carnet
-            $rutaImagenCarnet = "ruta/a/imagenes/{$aprendiz['documento']}.png";
-    
-            // Aquí iría el código para generar la imagen del carnet, incluyendo el código QR
-            // Esto dependerá de la biblioteca que estés usando (GD, Imagick, etc.)
-            // Por ejemplo, podrías cargar una plantilla de carnet, dibujar los datos del aprendiz y el código QR, y guardar el resultado
-    
-            // Añade la ruta de la imagen del carnet generada al array de rutas
-            $rutasImagenes[] = $rutaImagenCarnet;
+        foreach ($datosAprendices as &$aprendiz) {
+            // Genera el código QR y obtiene la ruta
+            $aprendiz['rutaCodigoQR'] = $this->generarCodigoQR($aprendiz['documento']);
         }
-        return $rutasImagenes;
+        unset($aprendiz); // Rompe la referencia con el último elemento
+
+        return $datosAprendices;
     }
-    
+
     private function generarCodigoQR($datos) {
-        // Importa las clases necesarias de la biblioteca
         $qrCode = new \Endroid\QrCode\QrCode($datos);
-    
-        // Puedes ajustar varios parámetros del código QR aquí, como el tamaño
         $qrCode->setSize(300);
-    
-        // Crea una instancia del escritor deseado, por ejemplo, para guardar como PNG
         $writer = new \Endroid\QrCode\Writer\PngWriter();
-    
-        // Define la ruta donde se guardará el código QR generado
-        $rutaArchivoQR = "ruta/a/codigosQR/{$datos}.png";
-    
-        // Guarda el código QR en la ruta especificada usando el escritor
+        $rutaDirectorioQR = "ruta/a/codigosQR/";
+        $rutaArchivoQR = $rutaDirectorioQR . "{$datos}.png";
+
+        if (!file_exists($rutaDirectorioQR)) {
+            mkdir($rutaDirectorioQR, 0755, true);
+        }
+
         $result = $writer->write($qrCode);
         file_put_contents($rutaArchivoQR, $result->getString());
-    
-        // Devuelve la ruta del archivo QR generado
+
         return $rutaArchivoQR;
     }
 }

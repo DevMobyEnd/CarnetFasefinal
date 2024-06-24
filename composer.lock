@@ -1010,7 +1010,6 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "phpmailer/phpmailer": 20,
         "intervention/image": 15
     },
     "prefer-stable": false,
