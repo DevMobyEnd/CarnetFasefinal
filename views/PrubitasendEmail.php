@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mail->Host = 'smtp.gmail.com';  // Reemplaza con tu servidor SMTP
         $mail->SMTPAuth = true;
         $mail->Username = 'jhonnygonsalez7@gmail.com';  // Reemplaza con tu dirección de correo
-        $mail->Password = 'fhcs orfw xcoh glck';  // Reemplaza con tu contraseña
+        $mail->Password = 'yazgdvfoyxumunwa';  // Reemplaza con tu contraseña
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
